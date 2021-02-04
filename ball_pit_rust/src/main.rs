@@ -9,6 +9,7 @@ pub mod physics;
 use physics::ball_physics;
 
 fn main() {
+	let mut physics_instance = ball_physics::BallPhysics::new();
 	let sdl_context = sdl2::init().unwrap();
 	let video_subsystem = sdl_context.video().unwrap();
 
@@ -40,10 +41,6 @@ fn main() {
 
         canvas.present();
         std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
+        physics_instance.update(1.0f32/60.0f32);
     }
-    println!("Bye!");
-}
-
-fn simulation_tick(dt: f32){
-
 }
