@@ -25,7 +25,7 @@ fn main() {
     canvas.present();
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
-
+    	//TODO draw balls to canvas
         canvas.set_draw_color(Color::RGB(16,32,64));
         canvas.clear();
         for event in event_pump.poll_iter() {

@@ -16,6 +16,7 @@ impl BallPhysics{
 	}
 
 	pub fn update(&mut self, dt: f32){
+		//TODO create update/interaction function
 		//add balls into sectors
 		//check for connections
 		//apply forces
