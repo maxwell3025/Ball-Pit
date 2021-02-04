@@ -1,0 +1,11 @@
+[package]
+name = "ball_pit_rust"
+version = "0.1.0"
+authors = ["maxwell3025 <44588341+maxwell3025@users.noreply.github.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+sdl2 = "0.34.3"
+nalgebra = "0.24.1"
