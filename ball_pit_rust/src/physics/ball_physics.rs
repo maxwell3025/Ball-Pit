@@ -6,7 +6,7 @@ use super::ball::Ball;
 
 pub struct BallPhysics{
 	balls: HashMap<i64, Ball>,
-	sectors: HashMap<Vector2<i32>, Vec<i64>>,
+	sectors: HashMap<(i32,i32), Vec<i64>>,
 	connections: HashSet<(i64,i64)>,
 	current_index: i64,
 }
@@ -45,7 +45,7 @@ impl BallPhysics{
 		&self.balls
 	}
 
-	pub fn get_sectors(&self) -> &HashMap<Vector2<i32>, Vec<i64>>{
+	pub fn get_sectors(&self) -> &HashMap<(i32,i32), Vec<i64>>{
 		&self.sectors
 	}
 }
