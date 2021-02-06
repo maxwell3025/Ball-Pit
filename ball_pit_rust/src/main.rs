@@ -9,6 +9,13 @@ pub mod physics;
 use physics::ball_physics;
 
 fn main() {
+	//settings
+	let scale = 10;
+	let width = 800;
+	let height = 600;
+	let center_x = width/2;
+	let center_y = height/2;
+	//rendering code
 	let mut physics_instance = ball_physics::BallPhysics::new();
 	let sdl_context = sdl2::init().unwrap();
 	let video_subsystem = sdl_context.video().unwrap();
@@ -26,8 +33,12 @@ fn main() {
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
     	//TODO draw balls to canvas
+    	//graphics code
         canvas.set_draw_color(Color::RGB(16,32,64));
         canvas.clear();
+        canvas.set_draw_color(Color::RGB(32,32,32));
+        
+        //event loop
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit {..} |
