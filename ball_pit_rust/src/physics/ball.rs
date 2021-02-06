@@ -1,9 +1,9 @@
 use nalgebra::Vector2;
 
 pub struct Ball{
-	pos: Vector2<f32>,
-	vel: Vector2<f32>,
-	rad: f32,
+	pub pos: Vector2<f32>,
+	pub vel: Vector2<f32>,
+	pub rad: f32,
 }
 
 impl Ball{
