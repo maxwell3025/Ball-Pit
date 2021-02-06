@@ -1,6 +1,5 @@
 use std::collections::HashMap; 
 use std::collections::HashSet;
-use nalgebra::Vector2;
 
 use super::ball::Ball;
 
@@ -17,7 +16,9 @@ impl BallPhysics{
 		let sectors = HashMap::new();
 		let connections = HashSet::new();
 		let current_index = 0;
-		BallPhysics{balls, sectors, connections, current_index}
+		let mut out = BallPhysics{balls, sectors, connections, current_index};
+		out.add_ball(Ball::new(0.0f32, 0.0f32, 0.0f32, 0.0f32, 1.0f32));
+		out
 	}
 
 	pub fn update(&mut self, dt: f32){

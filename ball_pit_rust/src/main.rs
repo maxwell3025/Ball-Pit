@@ -41,7 +41,7 @@ fn main() {
         let map = physics_instance.get_sectors();
         for y in -10..10{
         	for x in -10..10{
-        		if(map.contains_key(&(x,y))){
+        		if map.contains_key(&(x,y)) {
         			canvas.set_draw_color(Color::RGB(64,128,64));
         		}
         		else{
