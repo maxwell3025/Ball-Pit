@@ -23,18 +23,38 @@ impl BallPhysics{
 
 	pub fn update(&mut self, dt: f32){
 		//TODO create update/interaction function
-		//add balls into sectors
+		self.clean();
+		self.sectorize();
+		//check for connections
+		//apply forces
+	}
+
+	//clean up data structures
+	pub fn clean(&mut self){
+		self.sectors.clear();
+		self.connections.clear();
+	}
+
+	//add balls into sectors
+	pub fn sectorize(&mut self){
 		for (id, ball) in &self.balls{
 			let x = ball.pos.x;
 			let y = ball.pos.y;
+			let rad = ball.rad;
 			let x = x.floor() as i32;
 			let y = y.floor() as i32;
+			let rad = rad.ceil() as i32;
+
+			for sector_y in y-rad .. y+rad+1{
+				for sector_x in x-rad .. x+rad+1{
+					if !self.sectors.contains_key(&(sector_x, sector_y)) {
+						self.sectors.insert((sector_x, sector_y), Vec::new());
+					}
+					self.sectors.get_mut(&(sector_x, sector_y)).unwrap().push(*id);
+				}
+			}
 
 		}
-		//check for connections
-		//apply forces
-		//clean up data structures
-		self.connections.clear();
 	}
 
 	pub fn add_ball(&mut self, ball: Ball){

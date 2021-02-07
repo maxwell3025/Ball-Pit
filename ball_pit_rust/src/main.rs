@@ -33,11 +33,10 @@ fn main() {
     canvas.present();
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
-    	//TODO draw balls to canvas
     	//graphics code
         canvas.set_draw_color(Color::RGB(16,32,64));
         canvas.clear();
-        //cock IDK i cant pay attention
+        //grid drawing fucntion
         let map = physics_instance.get_sectors();
         for y in -10..10{
         	for x in -10..10{
@@ -47,10 +46,11 @@ fn main() {
         		else{
         			canvas.set_draw_color(Color::RGB(64,64,64));
         		}
-
-        		canvas.fill_rect(Rect::new(center_x + x * scale, center_y + y * scale, scale as u32, scale as u32));
+        		let tile_coords = Rect::new(center_x + x * scale, center_y + y * scale, scale as u32-1, scale as u32-1);
+        		canvas.fill_rect(tile_coords).ok().unwrap();
         	}
         }
+    	//TODO draw balls to canvas
         //event loop
         for event in event_pump.poll_iter() {
             match event {
