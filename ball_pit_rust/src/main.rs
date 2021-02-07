@@ -11,11 +11,12 @@ use physics::ball_physics;
 
 fn main() {
 	//settings
-	let scale = 10;
+	let scale: u32 = 20;
 	let width = 800;
 	let height = 600;
 	let center_x = width/2;
 	let center_y = height/2;
+	let dotsize: u32 = 5;
 	//rendering code
 	let mut physics_instance = ball_physics::BallPhysics::new();
 	let sdl_context = sdl2::init().unwrap();
@@ -46,11 +47,28 @@ fn main() {
         		else{
         			canvas.set_draw_color(Color::RGB(64,64,64));
         		}
-        		let tile_coords = Rect::new(center_x + x * scale, center_y + y * scale, scale as u32-1, scale as u32-1);
+        		let tile_coords = Rect::new(
+        			center_x + x * scale as i32, 
+        			center_y + y * scale as i32, 
+        			scale-1, 
+        			scale-1
+        			);
         		canvas.fill_rect(tile_coords).ok().unwrap();
         	}
         }
     	//TODO draw balls to canvas
+    	for (_id, ball) in physics_instance.get_balls() {
+    		let x = ball.pos.x;
+    		let y = ball.pos.y;
+        	let dot_coords = Rect::new(
+        		center_x + (x * scale as f32) as i32 - dotsize as i32, 
+        		center_y + (y * scale as f32) as i32 - dotsize as i32, 
+        		dotsize*2, 
+        		dotsize*2
+        	);
+    		canvas.set_draw_color(Color::RGB(192,54,54));
+    		canvas.fill_rect(dot_coords).ok().unwrap();
+    	}
         //event loop
         for event in event_pump.poll_iter() {
             match event {

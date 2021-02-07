@@ -18,6 +18,7 @@ impl BallPhysics{
 		let current_index = 0;
 		let mut out = BallPhysics{balls, sectors, connections, current_index};
 		out.add_ball(Ball::new(0.0f32, 0.0f32, 0.0f32, 0.0f32, 1.0f32));
+		out.add_ball(Ball::new(0.5f32, 0.0f32, 0.0f32, 0.0f32, 1.0f32));
 		out
 	}
 
@@ -25,6 +26,7 @@ impl BallPhysics{
 		//TODO create update/interaction function
 		self.clean();
 		self.sectorize();
+		self.update_collisions();
 		//check for connections
 		//apply forces
 	}
@@ -54,6 +56,27 @@ impl BallPhysics{
 				}
 			}
 
+		}
+	}
+
+	pub fn update_collisions(&mut self){
+		for (_sector,id_list) in &self.sectors {
+			for i in 0..id_list.len(){
+				for j in 0..i{
+					let ball_a = self.balls.get(&id_list[i]).unwrap();
+					let ball_b = self.balls.get(&id_list[j]).unwrap();
+					let diff = ball_a.pos - ball_b.pos;
+					let req_dist = ball_a.rad + ball_b.rad;
+					if diff.magnitude() <= req_dist{
+						let mut pair = (id_list[i], id_list[j]);
+						if pair.0 > pair.1 {
+							std::mem::swap(&mut pair.0, &mut pair.1);
+						}
+						self.connections.insert(pair);
+						println!("connected nodes {} and {}", pair.0, pair.1);
+					}
+				}
+			}
 		}
 	}
 
