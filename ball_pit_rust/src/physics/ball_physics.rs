@@ -1,8 +1,11 @@
 use std::collections::HashMap; 
 use std::collections::HashSet;
 
+use nalgebra::Vector2;
+
 use super::ball::Ball;
 
+pub const bottom: f32 = -10.0;
 pub struct BallPhysics{
 	balls: HashMap<i64, Ball>,
 	sectors: HashMap<(i32,i32), Vec<i64>>,
@@ -27,6 +30,7 @@ impl BallPhysics{
 		self.clean();
 		self.sectorize();
 		self.update_collisions();
+		self.do_physics(dt);
 		//check for connections
 		//apply forces
 	}
@@ -62,7 +66,11 @@ impl BallPhysics{
 	pub fn update_collisions(&mut self){
 		for (_sector,id_list) in &self.sectors {
 			for i in 0..id_list.len(){
-				for j in 0..i{
+				'inner: for j in 0..i{
+					if self.connections.contains(&(id_list[i], id_list[j])) {
+						//println!("already have nodes {} and {}", id_list[i], id_list[j]);
+						continue 'inner;
+					}
 					let ball_a = self.balls.get(&id_list[i]).unwrap();
 					let ball_b = self.balls.get(&id_list[j]).unwrap();
 					let diff = ball_a.pos - ball_b.pos;
@@ -73,10 +81,46 @@ impl BallPhysics{
 							std::mem::swap(&mut pair.0, &mut pair.1);
 						}
 						self.connections.insert(pair);
-						println!("connected nodes {} and {}", pair.0, pair.1);
+						// println!("connected nodes {} and {}", pair.0, pair.1);
+						// for (i,j) in &self.connections{
+						// 	println!("cotains ({}, {})", i, j);
+						// }
 					}
 				}
 			}
+		}
+	}
+
+	pub fn do_physics(&mut self, dt:f32){
+		//advect balls
+		//generate key list -_-
+		let mut keys = Vec::with_capacity(self.balls.len());
+		for key in self.get_balls().keys() {
+			keys.push(*key); //i hate it here i stg
+		}
+
+		for (a, b) in &self.connections{
+			let mut ball_a;
+			let mut ball_b;
+			unsafe{
+	        	assert_ne!(a, b, "`a` ({:?}) must not equal `b` ({:?})", a, b);
+				ball_a = & mut *(self.balls.get_mut(&a).unwrap() as *mut Ball);
+				ball_b = & mut *(self.balls.get_mut(&b).unwrap() as *mut Ball);
+			}
+			let diff = ball_a.pos-ball_b.pos;
+			ball_a.force += diff;
+			ball_b.force -= diff;
+		}
+		for i in &keys{
+			let mut ball = self.balls.get_mut(&i).unwrap();
+			ball.force += Vector2::new(0.0f32, -1.0f32);
+			if ball.pos.y < bottom{
+				ball.vel.y = ball.vel.y.abs();
+				ball.pos.y = 2. * bottom - ball.pos.y;
+			}
+		}
+		for i in &keys{
+			self.balls.get_mut(&i).unwrap().update(dt);
 		}
 	}
 

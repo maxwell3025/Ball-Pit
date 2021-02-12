@@ -39,9 +39,9 @@ fn main() {
         canvas.clear();
         //grid drawing fucntion
         let map = physics_instance.get_sectors();
-        for y in -10..10{
-        	for x in -10..10{
-        		if map.contains_key(&(x,y)) {
+        for y in -10..11{
+        	for x in -10..11{
+        		if map.contains_key(&(x,y-1)) {
         			canvas.set_draw_color(Color::RGB(64,128,64));
         		}
         		else{
@@ -49,20 +49,20 @@ fn main() {
         		}
         		let tile_coords = Rect::new(
         			center_x + x * scale as i32, 
-        			center_y + y * scale as i32, 
+        			center_y - y * scale as i32, 
         			scale-1, 
         			scale-1
         			);
         		canvas.fill_rect(tile_coords).ok().unwrap();
         	}
         }
-    	//TODO draw balls to canvas
+    	//draw balls to canvas
     	for (_id, ball) in physics_instance.get_balls() {
     		let x = ball.pos.x;
     		let y = ball.pos.y;
         	let dot_coords = Rect::new(
         		center_x + (x * scale as f32) as i32 - dotsize as i32, 
-        		center_y + (y * scale as f32) as i32 - dotsize as i32, 
+        		center_y - (y * scale as f32) as i32 - dotsize as i32, 
         		dotsize*2, 
         		dotsize*2
         	);
@@ -74,6 +74,7 @@ fn main() {
             match event {
                 Event::Quit {..} |
                 Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
+                	println!("Closing!");
                     break 'running;
                 },
                 _ => {}
@@ -84,5 +85,7 @@ fn main() {
         canvas.present();
         std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
         physics_instance.update(1.0f32/60.0f32);
+    	println!("frame end");
     }
+    println!("Bye!");
 }
