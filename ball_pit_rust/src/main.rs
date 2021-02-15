@@ -4,8 +4,9 @@ use sdl2::pixels::Color;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::rect::Rect;
+use sdl2::render::*;
+use sdl2::video::*;
 use std::time::Duration;
-
 pub mod physics;
 use physics::ball_physics;
 
@@ -17,6 +18,8 @@ fn main() {
 	let center_x = width/2;
 	let center_y = height/2;
 	let dotsize: u32 = 5;
+	let mut t = 0.0f32;
+	let mut frame_timer = ();
 	//rendering code
 	let mut physics_instance = ball_physics::BallPhysics::new();
 	let sdl_context = sdl2::init().unwrap();
@@ -39,8 +42,8 @@ fn main() {
         canvas.clear();
         //grid drawing fucntion
         let map = physics_instance.get_sectors();
-        for y in -10..11{
-        	for x in -10..11{
+        for y in -10..10{
+        	for x in -10..10{
         		if map.contains_key(&(x,y-1)) {
         			canvas.set_draw_color(Color::RGB(64,128,64));
         		}
@@ -60,14 +63,12 @@ fn main() {
     	for (_id, ball) in physics_instance.get_balls() {
     		let x = ball.pos.x;
     		let y = ball.pos.y;
-        	let dot_coords = Rect::new(
-        		center_x + (x * scale as f32) as i32 - dotsize as i32, 
-        		center_y - (y * scale as f32) as i32 - dotsize as i32, 
-        		dotsize*2, 
-        		dotsize*2
+        	let dot_coords = (
+        		center_x + (x * scale as f32) as i32, 
+        		center_y - (y * scale as f32) as i32
         	);
     		canvas.set_draw_color(Color::RGB(192,54,54));
-    		canvas.fill_rect(dot_coords).ok().unwrap();
+    		fill_circle(&mut canvas, dot_coords.0, dot_coords.1, ball.rad*scale as f32)
     	}
         //event loop
         for event in event_pump.poll_iter() {
@@ -83,9 +84,24 @@ fn main() {
         // The rest of the game loop goes here...
 
         canvas.present();
-        std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
-        physics_instance.update(1.0f32/60.0f32);
-    	println!("frame end");
+        std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 120));
+        physics_instance.update(1.0f32/120.0f32);
+        t += 1.0f32/120.0f32;
+    	println!("t = {}", t);
     }
     println!("Bye!");
+}
+
+fn fill_circle(canvas: &mut Canvas<Window>, x: i32, y: i32, rad: f32){
+	let pixel_width = rad.floor() as i32;
+	for n in -pixel_width..pixel_width + 1{
+		let height = (rad * rad - (n * n) as f32).sqrt().floor() as i32;
+		let strip = Rect::new(
+			x+n,
+			y-height,
+			1,
+			(height*2+1) as u32
+		);
+        canvas.fill_rect(strip).ok().unwrap();
+	}
 }

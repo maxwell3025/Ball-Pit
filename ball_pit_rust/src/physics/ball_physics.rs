@@ -3,11 +3,11 @@ use std::collections::HashSet;
 
 use nalgebra::Vector2;
 
-use super::ball::Ball;
+use super::ball;
 
-pub const bottom: f32 = -10.0;
+pub const BOTTOM: f32 = -10.0;
 pub struct BallPhysics{
-	balls: HashMap<i64, Ball>,
+	balls: HashMap<i64, ball::Ball>,
 	sectors: HashMap<(i32,i32), Vec<i64>>,
 	connections: HashSet<(i64,i64)>,
 	current_index: i64,
@@ -20,8 +20,8 @@ impl BallPhysics{
 		let connections = HashSet::new();
 		let current_index = 0;
 		let mut out = BallPhysics{balls, sectors, connections, current_index};
-		out.add_ball(Ball::new(0.0f32, 0.0f32, 0.0f32, 0.0f32, 1.0f32));
-		out.add_ball(Ball::new(0.5f32, 0.0f32, 0.0f32, 0.0f32, 1.0f32));
+		out.add_ball(ball::Ball::blank().with_pos(-20.0f32, 0.0f32).with_vel(5.0f32, 0.0f32));
+		out.add_ball(ball::Ball::blank().with_pos(20.0f32, 0.0f32).with_vel(-5.0f32, 0.0f32));
 		out
 	}
 
@@ -42,7 +42,7 @@ impl BallPhysics{
 	}
 
 	//add balls into sectors
-	pub fn sectorize(&mut self){
+	fn sectorize(&mut self){
 		for (id, ball) in &self.balls{
 			let x = ball.pos.x;
 			let y = ball.pos.y;
@@ -63,7 +63,7 @@ impl BallPhysics{
 		}
 	}
 
-	pub fn update_collisions(&mut self){
+	fn update_collisions(&mut self){
 		for (_sector,id_list) in &self.sectors {
 			for i in 0..id_list.len(){
 				'inner: for j in 0..i{
@@ -91,7 +91,7 @@ impl BallPhysics{
 		}
 	}
 
-	pub fn do_physics(&mut self, dt:f32){
+	fn do_physics(&mut self, dt: f32){
 		//advect balls
 		//generate key list -_-
 		let mut keys = Vec::with_capacity(self.balls.len());
@@ -99,37 +99,58 @@ impl BallPhysics{
 			keys.push(*key); //i hate it here i stg
 		}
 
+		//iterate through pairs in contact
 		for (a, b) in &self.connections{
 			let mut ball_a;
 			let mut ball_b;
 			unsafe{
 	        	assert_ne!(a, b, "`a` ({:?}) must not equal `b` ({:?})", a, b);
-				ball_a = & mut *(self.balls.get_mut(&a).unwrap() as *mut Ball);
-				ball_b = & mut *(self.balls.get_mut(&b).unwrap() as *mut Ball);
+				ball_a = & mut *(self.balls.get_mut(&a).unwrap() as *mut ball::Ball);
+				ball_b = & mut *(self.balls.get_mut(&b).unwrap() as *mut ball::Ball);
 			}
-			let diff = ball_a.pos-ball_b.pos;
-			ball_a.force += diff;
-			ball_b.force -= diff;
+			BallPhysics::do_collision(ball_a, ball_b);
 		}
+
+		//iterate through individual balls
 		for i in &keys{
 			let mut ball = self.balls.get_mut(&i).unwrap();
 			ball.force += Vector2::new(0.0f32, -1.0f32);
-			if ball.pos.y < bottom{
+			if ball.pos.y < BOTTOM{
 				ball.vel.y = ball.vel.y.abs();
-				ball.pos.y = 2. * bottom - ball.pos.y;
+				ball.pos.y = 2. * BOTTOM - ball.pos.y;
 			}
 		}
+
+		//update balls
 		for i in &keys{
 			self.balls.get_mut(&i).unwrap().update(dt);
 		}
 	}
+	//assuming that a and b are in contact
+	fn do_collision(a: &mut ball::Ball, b: &mut ball::Ball){
+		//check to make sure infinite collision loops dont happen by making sure balls are headed towards each other
+		let diff = a.pos - b.pos;
+		if diff.dot(&(a.vel-b.vel)) > 0.0f32 {
+			return;
+		}
 
-	pub fn add_ball(&mut self, ball: Ball){
+		//find projections
+		let proj_factor = 1.0f32 / diff.norm_squared();
+		let a_vel = a.vel.dot(&diff) * proj_factor * &diff;
+		let b_vel = b.vel.dot(&diff) * proj_factor * &diff;
+
+		//solve collisions
+		let momentum_transfer = 2.0f32/(a.mass+b.mass) * (b_vel - a_vel);
+		a.vel += momentum_transfer * b.mass;
+		b.vel -= momentum_transfer * a.mass;
+	}
+
+	pub fn add_ball(&mut self, ball: ball::Ball){
 		self.balls.insert(self.current_index, ball);
 		self.current_index += 1;
 	}
 
-	pub fn get_balls(&self) -> &HashMap<i64, Ball>{
+	pub fn get_balls(&self) -> &HashMap<i64, ball::Ball>{
 		&self.balls
 	}
 
