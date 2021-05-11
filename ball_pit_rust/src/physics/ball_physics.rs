@@ -4,10 +4,14 @@ use std::collections::HashSet;
 use nalgebra::Vector2;
 
 use super::ball;
+use super::wall;
 
 pub const BOTTOM: f32 = -10.0;
+pub const GRAVITY: f32 = 0.0;
+
 pub struct BallPhysics{
 	balls: HashMap<i64, ball::Ball>,
+	walls: HashMap<i64, wall::Wall>,
 	sectors: HashMap<(i32,i32), Vec<i64>>,
 	connections: HashSet<(i64,i64)>,
 	current_index: i64,
@@ -16,10 +20,11 @@ impl BallPhysics{
 	//constructor
 	pub fn new() -> BallPhysics{
 		let balls = HashMap::new();
+		let walls = HashMap::new();
 		let sectors = HashMap::new();
 		let connections = HashSet::new();
 		let current_index = 0;
-		let mut out = BallPhysics{balls, sectors, connections, current_index};
+		let mut out = BallPhysics{balls, walls, sectors, connections, current_index};
 		out.add_ball(ball::Ball::blank().with_pos(-20.0f32, 0.0f32).with_vel(5.0f32, 0.0f32));
 		out.add_ball(ball::Ball::blank().with_pos(20.0f32, 0.0f32).with_vel(-5.0f32, 0.0f32));
 		out
@@ -114,7 +119,12 @@ impl BallPhysics{
 		//iterate through individual balls
 		for i in &keys{
 			let mut ball = self.balls.get_mut(&i).unwrap();
-			ball.force += Vector2::new(0.0f32, -1.0f32);
+
+			//gravity
+			ball.force += Vector2::new(0.0f32, GRAVITY);
+
+			//floor collision
+			//TODO generalize walls
 			if ball.pos.y < BOTTOM{
 				ball.vel.y = ball.vel.y.abs();
 				ball.pos.y = 2. * BOTTOM - ball.pos.y;
@@ -148,6 +158,7 @@ impl BallPhysics{
 	pub fn add_ball(&mut self, ball: ball::Ball){
 		self.balls.insert(self.current_index, ball);
 		self.current_index += 1;
+		//TODO check for collisions
 	}
 
 	pub fn get_balls(&self) -> &HashMap<i64, ball::Ball>{
