@@ -1,13 +1,16 @@
 use std::collections::HashMap; 
 use std::collections::HashSet;
-
+use rand::thread_rng;
+use rand::Rng;
 use nalgebra::Vector2;
 
 use super::ball;
 use super::wall;
 
-pub const BOTTOM: f32 = -10.0;
 pub const GRAVITY: f32 = 0.0;
+pub const WALL_SIZE: f32 = 20.0; //
+pub const WALL_SEGS: i32 = 40;
+pub const BALL_COUNT: i32 = 100;
 
 pub struct BallPhysics{
 	balls: HashMap<i64, ball::Ball>,
@@ -25,8 +28,47 @@ impl BallPhysics{
 		let connections = HashSet::new();
 		let current_index = 0;
 		let mut out = BallPhysics{balls, walls, sectors, connections, current_index};
-		out.add_ball(ball::Ball::blank().with_pos(-20.0f32, 0.0f32).with_vel(5.0f32, 0.0f32));
-		out.add_ball(ball::Ball::blank().with_pos(20.0f32, 0.0f32).with_vel(-5.0f32, 0.0f32));
+		//generate gas
+		let mut rng = thread_rng();
+		for wall_position in 0 .. BALL_COUNT{
+			out.add_ball(ball::Ball::blank().
+				with_pos(
+					rng.gen_range(-WALL_SIZE+1.0f32 .. WALL_SIZE-1.0f32), 
+					rng.gen_range(-WALL_SIZE+1.0f32 .. WALL_SIZE-1.0f32)
+				).
+				with_vel(
+					rng.gen_range(-WALL_SIZE+1.0f32 .. WALL_SIZE-1.0f32), 
+					rng.gen_range(-WALL_SIZE+1.0f32 .. WALL_SIZE-1.0f32)
+				)
+			);
+		}
+		for wall_position in 0 .. BALL_COUNT{
+			out.add_ball(ball::Ball::blank().
+				with_pos(
+					rng.gen_range(-WALL_SIZE+1.0f32 .. WALL_SIZE-1.0f32), 
+					rng.gen_range(-WALL_SIZE+1.0f32 .. WALL_SIZE-1.0f32)
+				).
+				with_vel(
+					rng.gen_range(-WALL_SIZE+1.0f32 .. WALL_SIZE-1.0f32), 
+					rng.gen_range(-WALL_SIZE+1.0f32 .. WALL_SIZE-1.0f32)
+				).
+				with_rad(
+					0.5f32
+				).
+				with_mass(
+					0.25f32
+				)
+			);
+		}
+		//generate walls
+		for wall_position in 0 .. WALL_SEGS{
+			let lerp_value = (wall_position as f32)/(WALL_SEGS as f32);
+			let segment_size = WALL_SIZE/WALL_SEGS as f32;
+			out.add_ball(ball::Ball::blank().with_pos(WALL_SIZE*2.0f32*lerp_value-WALL_SIZE, -WALL_SIZE).with_rad(segment_size).with_mass(1.0e10f32));
+			out.add_ball(ball::Ball::blank().with_pos(WALL_SIZE-WALL_SIZE*2.0f32*lerp_value, WALL_SIZE).with_rad(segment_size).with_mass(1.0e10f32));
+			out.add_ball(ball::Ball::blank().with_pos(WALL_SIZE, WALL_SIZE*2.0f32*lerp_value-WALL_SIZE).with_rad(segment_size).with_mass(1.0e10f32));
+			out.add_ball(ball::Ball::blank().with_pos(-WALL_SIZE, WALL_SIZE-WALL_SIZE*2.0f32*lerp_value).with_rad(segment_size).with_mass(1.0e10f32));
+		}
 		out
 	}
 
@@ -122,13 +164,6 @@ impl BallPhysics{
 
 			//gravity
 			ball.force += Vector2::new(0.0f32, GRAVITY);
-
-			//floor collision
-			//TODO generalize walls
-			if ball.pos.y < BOTTOM{
-				ball.vel.y = ball.vel.y.abs();
-				ball.pos.y = 2. * BOTTOM - ball.pos.y;
-			}
 		}
 
 		//update balls
