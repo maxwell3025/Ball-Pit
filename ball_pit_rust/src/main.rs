@@ -59,7 +59,7 @@ fn main() {
             }
         }
         //draw balls to canvas
-        for (_id, ball) in physics_instance.get_balls() {
+        for ball in physics_instance.get_balls() {
             let x = ball.pos.x;
             let y = ball.pos.y;
             let dot_coords = (

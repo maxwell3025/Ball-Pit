@@ -13,18 +13,18 @@ pub const WALL_SEGS: i32 = 32;
 pub const BALL_COUNT: i32 = 10;
 
 pub struct BallPhysics {
-    balls: HashMap<i64, ball::Ball>,
-    walls: HashMap<i64, wall::Wall>,
-    sectors: HashMap<(i32, i32), Vec<i64>>,
-    connections: HashSet<(i64, i64)>,
+    balls: Vec<ball::Ball>,
+    walls: Vec<wall::Wall>,
+    sectors: HashMap<(i32, i32), Vec<usize>>,
+    connections: HashSet<(usize, usize)>,
     current_index: i64,
 }
 
 impl BallPhysics {
     //constructor
     pub fn new() -> BallPhysics {
-        let balls = HashMap::new();
-        let walls = HashMap::new();
+        let balls = Vec::new();
+        let walls = Vec::new();
         let sectors = HashMap::new();
         let connections = HashSet::new();
         let current_index = 0;
@@ -73,7 +73,7 @@ impl BallPhysics {
 
     //add balls into sectors
     fn sectorize(&mut self) {
-        for (id, ball) in &self.balls {
+        for (id, ball) in self.balls.iter().enumerate() {
             let x = ball.pos.x;
             let y = ball.pos.y;
             let range = ball.range;
@@ -86,7 +86,7 @@ impl BallPhysics {
                     if !self.sectors.contains_key(&(sector_x, sector_y)) {
                         self.sectors.insert((sector_x, sector_y), Vec::new());
                     }
-                    self.sectors.get_mut(&(sector_x, sector_y)).unwrap().push(*id);
+                    self.sectors.get_mut(&(sector_x, sector_y)).unwrap().push(id);
                 }
             }
         }
@@ -100,8 +100,8 @@ impl BallPhysics {
                         //println!("already have nodes {} and {}", id_list[i], id_list[j]);
                         continue 'inner;
                     }
-                    let ball_a = self.balls.get(&id_list[i]).unwrap();
-                    let ball_b = self.balls.get(&id_list[j]).unwrap();
+                    let ball_a = &self.balls[id_list[i]];
+                    let ball_b = &self.balls[id_list[j]];
                     let diff = ball_a.pos - ball_b.pos;
                     let req_dist = ball_a.rad + ball_b.rad;
                     if diff.magnitude() <= req_dist {
@@ -117,36 +117,26 @@ impl BallPhysics {
     }
 
     fn do_physics(&mut self, dt: f32) {
-        //advect balls
-        //generate key list -_-
-        let mut keys = Vec::with_capacity(self.balls.len());
-        for key in self.get_balls().keys() {
-            keys.push(*key); //i hate it here i stg
-        }
 
         //iterate through pairs in contact
         for (a, b) in &self.connections {
-            let ball_a;
-            let ball_b;
-            unsafe {
-                assert_ne!(a, b, "`a` ({:?}) must not equal `b` ({:?})", a, b);
-                ball_a = &mut *(self.balls.get_mut(&a).unwrap() as *mut ball::Ball);
-                ball_b = &mut *(self.balls.get_mut(&b).unwrap() as *mut ball::Ball);
+            unsafe{
+                let ball_a = &mut *(self.balls.get_unchecked_mut(*a) as *mut _);
+                let ball_b = &mut *(self.balls.get_unchecked_mut(*b) as *mut _);
+                BallPhysics::do_collision(ball_a, ball_b);
             }
-            BallPhysics::do_collision(ball_a, ball_b);
         }
 
         //iterate through individual balls
-        for i in &keys {
-            let ball = self.balls.get_mut(&i).unwrap();
+        for ball in &mut self.balls {
 
             //gravity
             ball.force += Vector2::new(0.0f32, GRAVITY);
         }
 
         //update balls
-        for i in &keys {
-            self.balls.get_mut(&i).unwrap().update(dt);
+        for ball in &mut self.balls {
+            ball.update(dt);
         }
     }
     //assuming that a and b are in contact
@@ -169,16 +159,16 @@ impl BallPhysics {
     }
 
     pub fn add_ball(&mut self, ball: ball::Ball) {
-        self.balls.insert(self.current_index, ball);
+        self.balls.push(ball);
         self.current_index += 1;
         //TODO check for collisions
     }
 
-    pub fn get_balls(&self) -> &HashMap<i64, ball::Ball> {
+    pub fn get_balls(&self) -> &Vec<ball::Ball> {
         &self.balls
     }
 
-    pub fn get_sectors(&self) -> &HashMap<(i32, i32), Vec<i64>> {
+    pub fn get_sectors(&self) -> &HashMap<(i32, i32), Vec<usize>> {
         &self.sectors
     }
 }
