@@ -59,7 +59,7 @@ impl BallPhysics {
         //TODO create update/interaction function
         self.clean();
         self.sectorize();
-        self.update_collisions();
+        self.update_contacts();
         self.do_physics(dt);
         //check for connections
         //apply forces
@@ -92,7 +92,7 @@ impl BallPhysics {
         }
     }
 
-    fn update_collisions(&mut self) {
+    fn update_contacts(&mut self) {
         for (_sector, id_list) in &self.sectors {
             for i in 0..id_list.len() {
                 'inner: for j in 0..i {
@@ -142,7 +142,7 @@ impl BallPhysics {
     //assuming that a and b are in contact
     fn do_collision(a: &mut ball::Ball, b: &mut ball::Ball) {
         //check to make sure infinite collision loops dont happen by making sure balls are headed towards each other
-        let diff = a.pos - b.pos;
+        let diff = a.pos- b.pos;
         if diff.dot(&(a.vel - b.vel)) > 0.0f32 {
             return;
         }
