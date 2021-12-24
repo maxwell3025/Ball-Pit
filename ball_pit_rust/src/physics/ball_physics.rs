@@ -76,13 +76,13 @@ impl BallPhysics {
         for (id, ball) in &self.balls {
             let x = ball.pos.x;
             let y = ball.pos.y;
-            let rad = ball.rad;
+            let range = ball.range;
             let x = x.floor() as i32;
             let y = y.floor() as i32;
-            let rad = rad.ceil() as i32;
+            let range = range.ceil() as i32;
 
-            for sector_y in y - rad..y + rad + 1 {
-                for sector_x in x - rad..x + rad + 1 {
+            for sector_y in y - range..y + range + 1 {
+                for sector_x in x - range..x + range + 1 {
                     if !self.sectors.contains_key(&(sector_x, sector_y)) {
                         self.sectors.insert((sector_x, sector_y), Vec::new());
                     }
@@ -110,10 +110,6 @@ impl BallPhysics {
                             std::mem::swap(&mut pair.0, &mut pair.1);
                         }
                         self.connections.insert(pair);
-                        // println!("connected nodes {} and {}", pair.0, pair.1);
-                        // for (i,j) in &self.connections{
-                        // 	println!("cotains ({}, {})", i, j);
-                        // }
                     }
                 }
             }

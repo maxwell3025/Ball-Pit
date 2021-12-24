@@ -4,6 +4,7 @@ pub struct Ball {
     pub pos: Vector2<f32>,
     pub vel: Vector2<f32>,
     pub rad: f32,
+    pub range: f32, //interaction radius for ball
     pub mass: f32,
     pub force: Vector2<f32>,
 }
@@ -14,7 +15,7 @@ impl Ball {
         let pos = Vector2::new(x_pos, y_pos);
         let vel = Vector2::new(x_vel, y_vel);
         let force = Vector2::new(0.0f32, 0.0f32);
-        Ball { pos, vel, rad, mass, force }
+        Ball { pos, vel, rad, range: rad, mass, force}
     }
 
     pub fn blank() -> Ball {
