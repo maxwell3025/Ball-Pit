@@ -1,18 +1,18 @@
 use std::collections::HashMap;
 use std::collections::HashSet;
+use nalgebra::Vector2;
 use rand::thread_rng;
 use rand::Rng;
-use nalgebra::Vector2;
 
 use super::ball::Ball;
 use super::wall;
 use super::interaction;
 
-pub const GRAVITY: f32 = 0.0;
+pub const GRAVITY: f32 = -1.;
 pub const WALL_SIZE: f32 = 32.0;
 pub const WALL_SEGS: i32 = 32;
-pub const BALL_COUNT: i32 = 64;
-pub const TEMP: f32 = 1000.0;
+pub const BALL_COUNT: i32 = 128;
+pub const TEMP: f32 = 1.0;
 
 pub struct BallPhysics {
     balls: Vec<Ball>,
@@ -36,7 +36,17 @@ impl BallPhysics {
         let vel = (TEMP * 2.).sqrt();
         for _ in 0..BALL_COUNT {
             let angle = rng.gen_range(0.0..std::f32::consts::PI * 2.);
-            out.add_ball(Ball::polar().
+            out.add_ball(Ball::anion().
+                with_pos(
+                    rng.gen_range(-WALL_SIZE + 1.0f32..WALL_SIZE - 1.0f32),
+                    rng.gen_range(-WALL_SIZE + 1.0f32..WALL_SIZE - 1.0f32),
+                ).
+                with_vel(
+                    vel * angle.cos(),
+                    vel * angle.sin(),
+                )
+            );
+            out.add_ball(Ball::cation().
                 with_pos(
                     rng.gen_range(-WALL_SIZE + 1.0f32..WALL_SIZE - 1.0f32),
                     rng.gen_range(-WALL_SIZE + 1.0f32..WALL_SIZE - 1.0f32),
@@ -51,10 +61,10 @@ impl BallPhysics {
         for wall_position in 0..WALL_SEGS {
             let lerp_value = (wall_position as f32) / (WALL_SEGS as f32);
             let segment_size = WALL_SIZE / WALL_SEGS as f32;
-            out.add_ball(Ball::blank().with_pos(WALL_SIZE * 2.0f32 * lerp_value - WALL_SIZE, -WALL_SIZE).with_rad(segment_size).with_mass(1.0e20f32));
-            out.add_ball(Ball::blank().with_pos(WALL_SIZE - WALL_SIZE * 2.0f32 * lerp_value, WALL_SIZE).with_rad(segment_size).with_mass(1.0e20f32));
-            out.add_ball(Ball::blank().with_pos(WALL_SIZE, WALL_SIZE * 2.0f32 * lerp_value - WALL_SIZE).with_rad(segment_size).with_mass(1.0e20f32));
-            out.add_ball(Ball::blank().with_pos(-WALL_SIZE, WALL_SIZE - WALL_SIZE * 2.0f32 * lerp_value).with_rad(segment_size).with_mass(1.0e20f32));
+            out.add_ball(Ball::wall().with_pos(WALL_SIZE * 2.0f32 * lerp_value - WALL_SIZE, -WALL_SIZE).with_rad(segment_size).with_mass(16.));
+            out.add_ball(Ball::wall().with_pos(WALL_SIZE - WALL_SIZE * 2.0f32 * lerp_value, WALL_SIZE).with_rad(segment_size));
+            out.add_ball(Ball::wall().with_pos(WALL_SIZE, WALL_SIZE * 2.0f32 * lerp_value - WALL_SIZE).with_rad(segment_size));
+            out.add_ball(Ball::wall().with_pos(-WALL_SIZE, WALL_SIZE - WALL_SIZE * 2.0f32 * lerp_value).with_rad(segment_size));
         }
         out
     }
@@ -80,7 +90,7 @@ impl BallPhysics {
         for (id, ball) in self.balls.iter().enumerate() {
             let x = ball.pos.x;
             let y = ball.pos.y;
-            let range = ball.range;
+            let range = ball.rad.max(ball.range);
             let x = x.floor() as i32;
             let y = y.floor() as i32;
             let range = range.ceil() as i32;
@@ -125,13 +135,13 @@ impl BallPhysics {
                 ball_a = &mut *(self.balls.get_unchecked_mut(*a) as *mut _);
                 ball_b = &mut *(self.balls.get_unchecked_mut(*b) as *mut _);
             }
+            ball_a.force += interaction::get_force(ball_a, ball_b);
+            ball_b.force += interaction::get_force(ball_b, ball_a);
             let diff = ball_a.pos - ball_b.pos;
             let req_dist = ball_a.rad + ball_b.rad;
             if diff.magnitude() <= req_dist {
                 BallPhysics::do_collision(ball_a, ball_b);
             }
-            ball_a.force += interaction::get_force(ball_a, ball_b);
-            ball_b.force += interaction::get_force(ball_b, ball_a);
         }
 
         //gravity

@@ -11,6 +11,7 @@ use std::time::Duration;
 pub mod physics;
 
 use physics::ball_physics;
+use crate::physics::ball::Mat;
 
 fn main() {
     //settings
@@ -77,7 +78,14 @@ fn main() {
                 center_x + (x * scale as f32) as i32,
                 center_y - (y * scale as f32) as i32
             );
-            canvas.set_draw_color(Color::RGB(192, 54, 54));
+
+            let color = match ball.mat {
+                Mat::Polar => Color::RGB(54, 192, 54),
+                Mat::Cation => Color::RGB(192, 54, 54),
+                Mat::Anion => Color::RGB(54, 192, 192),
+                _ => Color::RGB(192, 192, 192)
+            };
+            canvas.set_draw_color(color);
             fill_circle(&mut canvas, dot_coords.0, dot_coords.1, ball.rad * scale as f32);
         }
         //event loop
@@ -94,9 +102,9 @@ fn main() {
         // The rest of the game loop goes here...
 
         canvas.present();
-        std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 120));
-        physics_instance.update(1.0f32 / 120.0f32);
-        t += 1.0f32 / 120.0f32;
+        // std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 16));
+        physics_instance.update(1.0f32 / 32.0f32);
+        t += 1.0f32 / 32.0f32;
         println!("t = {}", t);
     }
     println!("Bye!");
