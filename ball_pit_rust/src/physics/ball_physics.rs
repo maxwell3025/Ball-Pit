@@ -10,7 +10,8 @@ use super::wall;
 pub const GRAVITY: f32 = 0.0;
 pub const WALL_SIZE: f32 = 32.0;
 pub const WALL_SEGS: i32 = 32;
-pub const BALL_COUNT: i32 = 10;
+pub const BALL_COUNT: i32 = 64;
+pub const TEMP:f32 = 1000.0;
 
 pub struct BallPhysics {
     balls: Vec<ball::Ball>,
@@ -31,15 +32,17 @@ impl BallPhysics {
         let mut out = BallPhysics { balls, walls, sectors, connections, current_index };
         //generate gas
         let mut rng = thread_rng();
+        let vel = (TEMP*2.).sqrt();
         for _ in 0..BALL_COUNT {
+            let angle = rng.gen_range(0.0..std::f32::consts::PI*2.);
             out.add_ball(ball::Ball::blank().
                 with_pos(
                     rng.gen_range(-WALL_SIZE + 1.0f32..WALL_SIZE - 1.0f32),
                     rng.gen_range(-WALL_SIZE + 1.0f32..WALL_SIZE - 1.0f32),
                 ).
                 with_vel(
-                    rng.gen_range(-WALL_SIZE + 1.0f32..WALL_SIZE - 1.0f32),
-                    rng.gen_range(-WALL_SIZE + 1.0f32..WALL_SIZE - 1.0f32),
+                    vel*angle.cos(),
+                    vel*angle.sin()
                 )
             );
         }
