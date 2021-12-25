@@ -4,17 +4,18 @@ use rand::thread_rng;
 use rand::Rng;
 use nalgebra::Vector2;
 
-use super::ball;
+use super::ball::Ball;
 use super::wall;
+use super::interaction;
 
 pub const GRAVITY: f32 = 0.0;
 pub const WALL_SIZE: f32 = 32.0;
 pub const WALL_SEGS: i32 = 32;
 pub const BALL_COUNT: i32 = 64;
-pub const TEMP:f32 = 1000.0;
+pub const TEMP: f32 = 1000.0;
 
 pub struct BallPhysics {
-    balls: Vec<ball::Ball>,
+    balls: Vec<Ball>,
     walls: Vec<wall::Wall>,
     sectors: HashMap<(i32, i32), Vec<usize>>,
     connections: HashSet<(usize, usize)>,
@@ -32,17 +33,17 @@ impl BallPhysics {
         let mut out = BallPhysics { balls, walls, sectors, connections, current_index };
         //generate gas
         let mut rng = thread_rng();
-        let vel = (TEMP*2.).sqrt();
+        let vel = (TEMP * 2.).sqrt();
         for _ in 0..BALL_COUNT {
-            let angle = rng.gen_range(0.0..std::f32::consts::PI*2.);
-            out.add_ball(ball::Ball::blank().
+            let angle = rng.gen_range(0.0..std::f32::consts::PI * 2.);
+            out.add_ball(Ball::polar().
                 with_pos(
                     rng.gen_range(-WALL_SIZE + 1.0f32..WALL_SIZE - 1.0f32),
                     rng.gen_range(-WALL_SIZE + 1.0f32..WALL_SIZE - 1.0f32),
                 ).
                 with_vel(
-                    vel*angle.cos(),
-                    vel*angle.sin()
+                    vel * angle.cos(),
+                    vel * angle.sin(),
                 )
             );
         }
@@ -50,10 +51,10 @@ impl BallPhysics {
         for wall_position in 0..WALL_SEGS {
             let lerp_value = (wall_position as f32) / (WALL_SEGS as f32);
             let segment_size = WALL_SIZE / WALL_SEGS as f32;
-            out.add_ball(ball::Ball::blank().with_pos(WALL_SIZE * 2.0f32 * lerp_value - WALL_SIZE, -WALL_SIZE).with_rad(segment_size).with_mass(1.0e10f32));
-            out.add_ball(ball::Ball::blank().with_pos(WALL_SIZE - WALL_SIZE * 2.0f32 * lerp_value, WALL_SIZE).with_rad(segment_size).with_mass(1.0e10f32));
-            out.add_ball(ball::Ball::blank().with_pos(WALL_SIZE, WALL_SIZE * 2.0f32 * lerp_value - WALL_SIZE).with_rad(segment_size).with_mass(1.0e10f32));
-            out.add_ball(ball::Ball::blank().with_pos(-WALL_SIZE, WALL_SIZE - WALL_SIZE * 2.0f32 * lerp_value).with_rad(segment_size).with_mass(1.0e10f32));
+            out.add_ball(Ball::blank().with_pos(WALL_SIZE * 2.0f32 * lerp_value - WALL_SIZE, -WALL_SIZE).with_rad(segment_size).with_mass(1.0e20f32));
+            out.add_ball(Ball::blank().with_pos(WALL_SIZE - WALL_SIZE * 2.0f32 * lerp_value, WALL_SIZE).with_rad(segment_size).with_mass(1.0e20f32));
+            out.add_ball(Ball::blank().with_pos(WALL_SIZE, WALL_SIZE * 2.0f32 * lerp_value - WALL_SIZE).with_rad(segment_size).with_mass(1.0e20f32));
+            out.add_ball(Ball::blank().with_pos(-WALL_SIZE, WALL_SIZE - WALL_SIZE * 2.0f32 * lerp_value).with_rad(segment_size).with_mass(1.0e20f32));
         }
         out
     }
@@ -103,17 +104,12 @@ impl BallPhysics {
                         //println!("already have nodes {} and {}", id_list[i], id_list[j]);
                         continue 'inner;
                     }
-                    let ball_a = &self.balls[id_list[i]];
-                    let ball_b = &self.balls[id_list[j]];
-                    let diff = ball_a.pos - ball_b.pos;
-                    let req_dist = ball_a.rad + ball_b.rad;
-                    if diff.magnitude() <= req_dist {
-                        let mut pair = (id_list[i], id_list[j]);
-                        if pair.0 > pair.1 {
-                            std::mem::swap(&mut pair.0, &mut pair.1);
-                        }
-                        self.connections.insert(pair);
+                    let mut pair = (id_list[i], id_list[j]);
+                    if pair.0 > pair.1 {
+                        std::mem::swap(&mut pair.0, &mut pair.1);
                     }
+                    self.connections.insert(pair);
+
                 }
             }
         }
@@ -123,17 +119,23 @@ impl BallPhysics {
 
         //iterate through pairs in contact
         for (a, b) in &self.connections {
-            unsafe{
-                let ball_a = &mut *(self.balls.get_unchecked_mut(*a) as *mut _);
-                let ball_b = &mut *(self.balls.get_unchecked_mut(*b) as *mut _);
+            let ball_a: &mut Ball;
+            let ball_b: &mut Ball;
+            unsafe {
+                ball_a = &mut *(self.balls.get_unchecked_mut(*a) as *mut _);
+                ball_b = &mut *(self.balls.get_unchecked_mut(*b) as *mut _);
+            }
+            let diff = ball_a.pos - ball_b.pos;
+            let req_dist = ball_a.rad + ball_b.rad;
+            if diff.magnitude() <= req_dist {
                 BallPhysics::do_collision(ball_a, ball_b);
             }
+            ball_a.force += interaction::get_force(ball_a, ball_b);
+            ball_b.force += interaction::get_force(ball_b, ball_a);
         }
 
-        //iterate through individual balls
+        //gravity
         for ball in &mut self.balls {
-
-            //gravity
             ball.force += Vector2::new(0.0f32, GRAVITY);
         }
 
@@ -143,9 +145,9 @@ impl BallPhysics {
         }
     }
     //assuming that a and b are in contact
-    fn do_collision(a: &mut ball::Ball, b: &mut ball::Ball) {
+    fn do_collision(a: &mut Ball, b: &mut Ball) {
         //check to make sure infinite collision loops dont happen by making sure balls are headed towards each other
-        let diff = a.pos- b.pos;
+        let diff:Vector2<f32> = a.pos - b.pos;
         if diff.dot(&(a.vel - b.vel)) > 0.0f32 {
             return;
         }
@@ -161,13 +163,13 @@ impl BallPhysics {
         b.vel -= momentum_transfer * a.mass;
     }
 
-    pub fn add_ball(&mut self, ball: ball::Ball) {
+    pub fn add_ball(&mut self, ball: Ball) {
         self.balls.push(ball);
         self.current_index += 1;
         //TODO check for collisions
     }
 
-    pub fn get_balls(&self) -> &Vec<ball::Ball> {
+    pub fn get_balls(&self) -> &Vec<Ball> {
         &self.balls
     }
 

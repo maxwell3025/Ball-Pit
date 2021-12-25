@@ -31,7 +31,7 @@ fn main() {
         .unwrap();
 
     let mut canvas = window.into_canvas().build().unwrap();
-
+    canvas.set_blend_mode(BlendMode::Blend);
     canvas.set_draw_color(Color::RGB(0, 0, 0));
     canvas.clear();
     canvas.present();
@@ -58,6 +58,17 @@ fn main() {
                 canvas.fill_rect(tile_coords).ok().unwrap();
             }
         }
+        //draw fields to canvas
+        for ball in physics_instance.get_balls() {
+            let x = ball.pos.x;
+            let y = ball.pos.y;
+            let dot_coords = (
+                center_x + (x * scale as f32) as i32,
+                center_y - (y * scale as f32) as i32
+            );
+            canvas.set_draw_color(Color::RGBA(54, 54, 128,128));
+            fill_circle(&mut canvas, dot_coords.0, dot_coords.1, ball.range * scale as f32);
+        }
         //draw balls to canvas
         for ball in physics_instance.get_balls() {
             let x = ball.pos.x;
@@ -67,7 +78,7 @@ fn main() {
                 center_y - (y * scale as f32) as i32
             );
             canvas.set_draw_color(Color::RGB(192, 54, 54));
-            fill_circle(&mut canvas, dot_coords.0, dot_coords.1, ball.rad * scale as f32)
+            fill_circle(&mut canvas, dot_coords.0, dot_coords.1, ball.rad * scale as f32);
         }
         //event loop
         for event in event_pump.poll_iter() {

@@ -1,5 +1,12 @@
 use nalgebra::Vector2;
 
+pub enum Mat {
+    Custom,
+    Polar,
+    Anion,
+    Cation,
+}
+
 pub struct Ball {
     pub pos: Vector2<f32>,
     pub vel: Vector2<f32>,
@@ -7,6 +14,7 @@ pub struct Ball {
     pub range: f32, //interaction radius for ball
     pub mass: f32,
     pub force: Vector2<f32>,
+    pub mat: Mat,
 }
 
 impl Ball {
@@ -15,7 +23,7 @@ impl Ball {
         let pos = Vector2::new(x_pos, y_pos);
         let vel = Vector2::new(x_vel, y_vel);
         let force = Vector2::new(0.0f32, 0.0f32);
-        Ball { pos, vel, rad, range: rad, mass, force}
+        Ball { pos, vel, rad, range: rad, mass, force, mat: Mat::Custom }
     }
 
     pub fn blank() -> Ball {
@@ -46,5 +54,33 @@ impl Ball {
     pub fn with_mass(mut self, mass: f32) -> Self {
         self.mass = mass;
         self
+    }
+
+    fn with_mat(mut self, mat: Mat) -> Self {
+        self.mat = mat;
+        self
+    }
+
+    fn with_range(mut self, range: f32) -> Self {
+        self.range = range;
+        self
+    }
+    //initializers
+    pub fn polar() -> Ball {
+        Ball::blank().
+            with_mat(Mat::Polar).
+            with_range(2.0)
+    }
+
+    pub fn cation() -> Ball {
+        Ball::blank().
+            with_mat(Mat::Cation).
+            with_range(2.0)
+    }
+
+    pub fn anion() -> Ball {
+        Ball::blank().
+            with_mat(Mat::Anion).
+            with_range(2.0)
     }
 }
