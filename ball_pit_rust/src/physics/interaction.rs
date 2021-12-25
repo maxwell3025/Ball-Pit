@@ -24,7 +24,7 @@ fn polar_polar(a: &Ball, b: &Ball) -> Vector2<f32> {
     let ns = diff.norm_squared();
     let att = diff / (ns + 1.);
     let correct = -diff / (17.);
-    (att + correct) * 2.
+    (att + correct) * 4.
 }
 
 fn anion_cation(a: &Ball, b: &Ball) -> Vector2<f32> {

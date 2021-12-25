@@ -8,11 +8,11 @@ use super::ball::Ball;
 use super::wall;
 use super::interaction;
 
-pub const GRAVITY: f32 = -1.;
+pub const GRAVITY: f32 = -0.1;
 pub const WALL_SIZE: f32 = 32.0;
 pub const WALL_SEGS: i32 = 32;
 pub const BALL_COUNT: i32 = 128;
-pub const TEMP: f32 = 1.0;
+pub const TEMP: f32 = 4.0;
 
 pub struct BallPhysics {
     balls: Vec<Ball>,
@@ -36,7 +36,19 @@ impl BallPhysics {
         let vel = (TEMP * 2.).sqrt();
         for _ in 0..BALL_COUNT {
             let angle = rng.gen_range(0.0..std::f32::consts::PI * 2.);
-            out.add_ball(Ball::anion().
+            out.add_ball(Ball::blank().
+                with_pos(
+                    rng.gen_range(-WALL_SIZE + 1.0f32..WALL_SIZE - 1.0f32),
+                    rng.gen_range(-WALL_SIZE + 1.0f32..WALL_SIZE - 1.0f32),
+                ).
+                with_vel(
+                    vel * angle.cos(),
+                    vel * angle.sin(),
+                ).
+                with_mass(0.25).
+                with_rad(0.5)
+            );
+            out.add_ball(Ball::cation().
                 with_pos(
                     rng.gen_range(-WALL_SIZE + 1.0f32..WALL_SIZE - 1.0f32),
                     rng.gen_range(-WALL_SIZE + 1.0f32..WALL_SIZE - 1.0f32),
@@ -46,7 +58,7 @@ impl BallPhysics {
                     vel * angle.sin(),
                 )
             );
-            out.add_ball(Ball::cation().
+            out.add_ball(Ball::anion().
                 with_pos(
                     rng.gen_range(-WALL_SIZE + 1.0f32..WALL_SIZE - 1.0f32),
                     rng.gen_range(-WALL_SIZE + 1.0f32..WALL_SIZE - 1.0f32),
@@ -69,12 +81,12 @@ impl BallPhysics {
         out
     }
 
-    pub fn update(&mut self, dt: f32) {
+    pub fn update(&mut self, dt: f32, cooling: bool) {
         //TODO create update/interaction function
         self.clean();
         self.sectorize();
         self.update_contacts();
-        self.do_physics(dt);
+        self.do_physics(dt, cooling);
         //check for connections
         //apply forces
     }
@@ -125,9 +137,9 @@ impl BallPhysics {
         }
     }
 
-    fn do_physics(&mut self, dt: f32) {
+    fn do_physics(&mut self, dt: f32, cooling: bool) {
 
-        //iterate through pairs in contact
+        //IMFs
         for (a, b) in &self.connections {
             let ball_a: &mut Ball;
             let ball_b: &mut Ball;
@@ -137,11 +149,6 @@ impl BallPhysics {
             }
             ball_a.force += interaction::get_force(ball_a, ball_b);
             ball_b.force += interaction::get_force(ball_b, ball_a);
-            let diff = ball_a.pos - ball_b.pos;
-            let req_dist = ball_a.rad + ball_b.rad;
-            if diff.magnitude() <= req_dist {
-                BallPhysics::do_collision(ball_a, ball_b);
-            }
         }
 
         //gravity
@@ -149,9 +156,35 @@ impl BallPhysics {
             ball.force += Vector2::new(0.0f32, GRAVITY);
         }
 
+        //cooling
+        if cooling {
+            for ball in &mut self.balls {
+                ball.vel *= 1.-dt;
+            }
+        }
+
         //update balls
         for ball in &mut self.balls {
-            ball.update(dt);
+            ball.apply_forces(dt);
+        }
+
+        //collisions
+        for (a, b) in &self.connections {
+            let ball_a: &mut Ball;
+            let ball_b: &mut Ball;
+            unsafe {
+                ball_a = &mut *(self.balls.get_unchecked_mut(*a) as *mut _);
+                ball_b = &mut *(self.balls.get_unchecked_mut(*b) as *mut _);
+            }
+            let diff = ball_a.pos - ball_b.pos;
+            let req_dist = ball_a.rad + ball_b.rad;
+            if diff.magnitude() <= req_dist {
+                BallPhysics::do_collision(ball_a, ball_b);
+            }
+        }
+
+        for ball in &mut self.balls {
+            ball.advect(dt);
         }
     }
     //assuming that a and b are in contact

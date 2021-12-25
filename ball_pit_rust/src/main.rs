@@ -13,6 +13,8 @@ pub mod physics;
 use physics::ball_physics;
 use crate::physics::ball::Mat;
 
+pub const SECTOR_DEBUG: bool = false;
+
 fn main() {
     //settings
     let scale: u32 = 8;
@@ -37,26 +39,29 @@ fn main() {
     canvas.clear();
     canvas.present();
     let mut event_pump = sdl_context.event_pump().unwrap();
+    let mut cooling = false;
     'running: loop {
         //graphics code
         canvas.set_draw_color(Color::RGB(16, 32, 64));
         canvas.clear();
         //grid drawing fucntion
-        let map = physics_instance.get_sectors();
-        for y in -16..16 {
-            for x in -16..16 {
-                if map.contains_key(&(x, y)) {
-                    canvas.set_draw_color(Color::RGB(64, 128, 64));
-                } else {
-                    canvas.set_draw_color(Color::RGB(64, 64, 64));
+        if SECTOR_DEBUG {
+            let map = physics_instance.get_sectors();
+            for y in -16..16 {
+                for x in -16..16 {
+                    if map.contains_key(&(x, y)) {
+                        canvas.set_draw_color(Color::RGB(64, 128, 64));
+                    } else {
+                        canvas.set_draw_color(Color::RGB(64, 64, 64));
+                    }
+                    let tile_coords = Rect::new(
+                        center_x + x * scale as i32,
+                        center_y - (y + 1) * scale as i32,
+                        scale - 1,
+                        scale - 1,
+                    );
+                    canvas.fill_rect(tile_coords).ok().unwrap();
                 }
-                let tile_coords = Rect::new(
-                    center_x + x * scale as i32,
-                    center_y - (y + 1) * scale as i32,
-                    scale - 1,
-                    scale - 1,
-                );
-                canvas.fill_rect(tile_coords).ok().unwrap();
             }
         }
         //draw fields to canvas
@@ -96,6 +101,12 @@ fn main() {
                     println!("Closing!");
                     break 'running;
                 }
+                Event::KeyDown { keycode: Some(Keycode::C), .. } => {
+                    cooling = true;
+                }
+                Event::KeyUp { keycode: Some(Keycode::C), .. } => {
+                    cooling = false;
+                }
                 _ => {}
             }
         }
@@ -103,7 +114,7 @@ fn main() {
 
         canvas.present();
         // std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 16));
-        physics_instance.update(1.0f32 / 32.0f32);
+        physics_instance.update(1.0f32 / 32.0f32, cooling);
         t += 1.0f32 / 32.0f32;
         println!("t = {}", t);
     }

@@ -31,7 +31,7 @@ impl Ball {
         Ball::new(0., 0., 0., 0., 1., 1.)
     }
     //physics update function
-    pub fn update(&mut self, dt: f32) {
+    pub fn apply_forces(&mut self, dt: f32){
         match &self.mat {
             Mat::Wall => {
                 self.vel = Vector2::new(0., 0.);
@@ -39,8 +39,15 @@ impl Ball {
             }
             _ => {
                 self.vel += self.force * dt;
-                self.pos += self.vel * dt;
                 self.force = Vector2::new(0., 0.);
+            }
+        }
+    }
+    pub fn advect(&mut self, dt: f32) {
+        match &self.mat {
+            Mat::Wall => {}
+            _ => {
+                self.pos += self.vel * dt;
             }
         }
     }
